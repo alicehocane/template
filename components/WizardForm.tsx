@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { FormData, DocType, BillingType } from '../types';
-import { User, Briefcase, DollarSign, MapPin, CheckCircle2, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { User, Briefcase, DollarSign, MapPin, CheckCircle2, ChevronLeft, ChevronRight, Info, AlertCircle } from 'lucide-react';
 
 interface WizardFormProps {
   data: FormData;
@@ -11,16 +11,53 @@ interface WizardFormProps {
 
 export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType }) => {
   const [step, setStep] = useState(1);
+  const [showError, setShowError] = useState(false);
   const totalSteps = 4;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     onChange({ [name]: val });
+    if (showError) setShowError(false);
   };
 
-  const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
-  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+  const isStepValid = () => {
+    switch (step) {
+      case 1:
+        return !!(data.clientName && data.clientAddress && data.clientEmail);
+      case 2:
+        return !!(data.matterDescription && data.jurisdiction);
+      case 3:
+        if (docType === 'retainer') {
+          return data.billingType === 'hourly' ? !!data.hourlyRate : !!data.flatFeeAmount;
+        }
+        if (docType === 'collection') {
+          return !!(data.totalDebt && data.dueDate);
+        }
+        if (docType === 'fdd_review') {
+          return !!data.retainerAmount;
+        }
+        return true;
+      case 4:
+        return true; // Options are typically optional
+      default:
+        return true;
+    }
+  };
+
+  const nextStep = () => {
+    if (isStepValid()) {
+      setStep(prev => Math.min(prev + 1, totalSteps));
+      setShowError(false);
+    } else {
+      setShowError(true);
+    }
+  };
+  
+  const prevStep = () => {
+    setStep(prev => Math.max(prev - 1, 1));
+    setShowError(false);
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -32,36 +69,36 @@ export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType 
               <h3 className="font-semibold text-slate-800">Client Information</h3>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Full Legal Name</label>
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Full Legal Name *</label>
               <input
                 type="text"
                 name="clientName"
                 value={data.clientName}
                 onChange={handleChange}
                 placeholder="e.g. Acme Corp or John Smith"
-                className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.clientName ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Physical Address</label>
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Physical Address *</label>
               <textarea
                 name="clientAddress"
                 value={data.clientAddress}
                 onChange={handleChange}
                 rows={2}
                 placeholder="123 Legal Lane, Suite 100..."
-                className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.clientAddress ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Email Address</label>
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Email Address *</label>
               <input
                 type="email"
                 name="clientEmail"
                 value={data.clientEmail}
                 onChange={handleChange}
                 placeholder="client@example.com"
-                className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.clientEmail ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
               />
             </div>
             <div className="flex items-center gap-2 pt-2">
@@ -85,20 +122,20 @@ export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType 
               <h3 className="font-semibold text-slate-800">Matter Details</h3>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Matter Description</label>
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Matter Description *</label>
               <textarea
                 name="matterDescription"
                 value={data.matterDescription}
                 onChange={handleChange}
                 rows={3}
                 placeholder="Provide a brief description of the legal matter..."
-                className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.matterDescription ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-500 uppercase mb-1 flex items-center gap-1">
-                  Jurisdiction
+                  Jurisdiction *
                   <div className="group relative">
                     <Info size={12} className="text-slate-400 cursor-help" />
                     <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-slate-800 text-white text-[10px] rounded w-32 leading-tight z-10">
@@ -113,12 +150,12 @@ export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType 
                     name="jurisdiction"
                     value={data.jurisdiction}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className={`w-full pl-10 pr-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.jurisdiction ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Effective Date</label>
+                <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Effective Date *</label>
                 <input
                   type="date"
                   name="effectiveDate"
@@ -162,13 +199,13 @@ export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType 
               {data.billingType === 'hourly' ? (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Hourly Rate ($)</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Hourly Rate ($) *</label>
                     <input
                       type="number"
                       name="hourlyRate"
                       value={data.hourlyRate}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.hourlyRate ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
                     />
                   </div>
                   <div>
@@ -184,13 +221,13 @@ export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType 
                 </>
               ) : (
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Total Flat Fee ($)</label>
+                  <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Total Flat Fee ($) *</label>
                   <input
                     type="number"
                     name="flatFeeAmount"
                     value={data.flatFeeAmount}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.flatFeeAmount ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
                   />
                 </div>
               )}
@@ -199,26 +236,39 @@ export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType 
             {docType === 'collection' && (
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Total Debt Amount</label>
+                  <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Total Debt Amount *</label>
                   <input
                     type="text"
                     name="totalDebt"
                     value={data.totalDebt}
                     onChange={handleChange}
                     placeholder="e.g. 5,000.00"
-                    className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.totalDebt ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Due Date</label>
+                  <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Due Date *</label>
                   <input
                     type="date"
                     name="dueDate"
                     value={data.dueDate}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.dueDate ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
                   />
                 </div>
+              </div>
+            )}
+
+            {docType === 'fdd_review' && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Franchise Retainer ($) *</label>
+                <input
+                  type="number"
+                  name="retainerAmount"
+                  value={data.retainerAmount}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 bg-white text-slate-900 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${showError && !data.retainerAmount ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
+                />
               </div>
             )}
           </div>
@@ -288,6 +338,12 @@ export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType 
 
       <div className="min-h-[400px]">
         {renderStep()}
+        {showError && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-700 text-xs font-medium animate-in slide-in-from-top-1">
+            <AlertCircle size={14} />
+            Please fill in all mandatory fields (*) to proceed.
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
@@ -306,10 +362,12 @@ export const WizardForm: React.FC<WizardFormProps> = ({ data, onChange, docType 
           onClick={nextStep}
           disabled={step === totalSteps}
           className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors ${
-            step === totalSteps ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+            step === totalSteps 
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+              : !isStepValid() && showError ? 'bg-red-600 text-white shadow-lg' : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}
         >
-          Next
+          {step === totalSteps ? 'Review Complete' : 'Next Step'}
           <ChevronRight size={20} />
         </button>
       </div>
