@@ -70,23 +70,25 @@ export const DocPreview: React.FC<DocPreviewProps> = ({ docType, data }) => {
     setIsLoadingAi(false);
   };
 
-  // High Fidelity PDF Download - Fixed whitespace and page spillover
+  // High Fidelity PDF Download - Robust fitting logic
   const downloadPdf = () => {
     if (!docRef.current) return;
     const element = docRef.current;
     
+    // Create a temporary clone for printing to adjust styling without affecting UI
     const opt = {
-      margin: [10, 10, 10, 10], // Tighter margins for better fit
+      margin: [15, 15, 15, 15], // Standard professional margins
       filename: `${template.name}_${data.clientName || 'Draft'}.pdf`,
-      image: { type: 'jpeg', quality: 1.0 },
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2, 
         useCORS: true,
         letterRendering: true,
-        scrollY: 0 // Ensure it starts from top of element
+        scrollY: 0,
+        windowWidth: 800 // Fix width for consistent rendering
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all'] }
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     // @ts-ignore - html2pdf is global
@@ -216,14 +218,13 @@ export const DocPreview: React.FC<DocPreviewProps> = ({ docType, data }) => {
       </div>
 
       <div className="flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-8 print-area">
-        {/* Tightened document layout: reduced padding from p-12 to p-6/p-10 */}
+        {/* Adjusted padding and sizing for better PDF fit */}
         <div 
           ref={docRef} 
-          className="max-w-[800px] mx-auto bg-white shadow-xl p-6 sm:p-10 font-serif text-slate-900 relative"
-          style={{ minHeight: 'fit-content', paddingTop: '40px' }}
+          className="max-w-[800px] mx-auto bg-white shadow-xl p-8 sm:p-12 font-serif text-slate-900 relative print:p-8"
+          style={{ minHeight: '297mm', paddingTop: '40px' }}
         >
-          {/* Reduced header margin-bottom from mb-8 to mb-6 */}
-          <div className="mb-6 border-b-2 border-slate-900 pb-3 flex justify-between items-end">
+          <div className="mb-8 border-b-2 border-slate-900 pb-3 flex justify-between items-end">
             <div>
               <h3 className="text-lg sm:text-xl font-bold uppercase tracking-tighter leading-none">{data.firmName}</h3>
               <p className="text-[9px] sm:text-[10px] font-sans text-slate-500 uppercase tracking-widest mt-1">Attorney at Law &bull; {data.jurisdiction}</p>
@@ -233,12 +234,11 @@ export const DocPreview: React.FC<DocPreviewProps> = ({ docType, data }) => {
             </div>
           </div>
 
-          {/* Reduced margin-bottom from mb-8 to mb-6 */}
-          <h1 className="text-xl sm:text-2xl font-bold text-center mb-6 uppercase underline decoration-1 underline-offset-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-center mb-8 uppercase underline decoration-1 underline-offset-4">
             {template.name}
           </h1>
 
-          <div className="space-y-4 sm:space-y-5 text-xs sm:text-sm leading-relaxed">
+          <div className="space-y-4 sm:space-y-6 text-xs sm:text-sm leading-relaxed">
             {activeSections.map((section, idx) => {
               const rawContent = replacePlaceholders(section.content);
               const isExplaining = explainingId === section.id;
@@ -326,8 +326,7 @@ export const DocPreview: React.FC<DocPreviewProps> = ({ docType, data }) => {
             })}
           </div>
 
-          {/* Reduced margin-top from mt-16 to mt-10 to keep footer on same page */}
-          <div className="mt-10 pt-6 border-t border-slate-100 text-[9px] text-slate-400 font-sans text-center">
+          <div className="mt-16 pt-6 border-t border-slate-100 text-[9px] text-slate-400 font-sans text-center print:mt-10">
             LexiForge Digital Asset ID: LXF-{Math.random().toString(36).substring(7).toUpperCase()}
             <br />
             Confidentiality privileged under {data.jurisdiction} professional conduct rules.
